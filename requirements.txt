@@ -13,3 +13,5 @@ passlib
 pydantic[email]
 python-jose[cryptography] 
 passlib[bcrypt]
+predibase
+gradio

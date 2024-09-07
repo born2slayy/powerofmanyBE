@@ -56,7 +56,7 @@ class UnionByCreatorResponse(BaseModel):
     unionName: str
     qrCodeLink: str
     signedCount: int
-    checkProfilesTF: bool = False
+    checkProfilesTF: bool
 
 class UnionByCreatorResponseList(BaseModel):
     unions : List[UnionByCreatorResponse]
@@ -91,3 +91,7 @@ class NonUserResponse(BaseModel):
     department: str
     nonUserEmail: EmailStr
     nonUserPhoneNum: str
+
+class ChatRequest(BaseModel):
+    input: str
+    

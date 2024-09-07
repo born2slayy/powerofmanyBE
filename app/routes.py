@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from sqlalchemy import func
-from . import models, schemas, database
+from . import models, schemas, database, llm
 from passlib.context import CryptContext
 
 router = APIRouter()
@@ -63,13 +63,20 @@ def create_union(creator_id: int, union: schemas.UnionCreate, db: Session = Depe
 @router.get("/unions/read/{creator_id}", response_model=schemas.UnionByCreatorResponseList)
 def read_unions_by_creators(creator_id: int, db: Session = Depends(get_db)):
     unions = db.query(models.Union).filter(models.Union.creator_id == creator_id).all()
+    for union in unions:
+        print(f'union.signedCount: {union.signedCount}')
+        print(type(union.signedCount))
+        checkProfileTF=(union.signedCount >= 10)
+        print(f'checkProfileTF: {checkProfileTF}')
+        
+
 
     union_list = [
         schemas.UnionByCreatorResponse(
             unionName=union.unionName,
             qrCodeLink=union.qrCodeLink,
-            signedCount=union.signedCount if union.signedCount is not None else 0,  
-            checkProfileTF=(union.signedCount is not None and union.signedCount >= 10)  
+            signedCount=union.signedCount,
+            checkProfilesTF=(union.signedCount >= 10)
         )
         for union in unions
             
@@ -90,55 +97,62 @@ def read_unions_by_qr(unionName: str, db: Session = Depends(get_db)):
         unionName=union.unionName,
         qrCodeLink=union.qrCodeLink,
         signedCount=union.signedCount,
-        checkProfileTF=(union.signedCount >= 10)  
+        checkProfilesTF=(union.signedCount >= 10)  
     ) for union in unions]
     
 #non user signing page (name, employeeId, jobtitle, department, email, phonenum) signcount +1
 @router.post("/sign/{union_name}")
 def nonuser_signing(union_name: str, non_user: schemas.NonUserBase, db: Session = Depends(get_db)):
+    union = db.query(models.Union).filter(models.Union.unionName == union_name).first()
+
+    if not union:
+        raise HTTPException(status_code=404, detail="Union not found")
+
     new_non_user = models.NonUser(  
-        name=non_user.nonUserName,
-        employee_id=non_user.employeeId,
-        job_title=non_user.jobTitle,
+        nonUserName=non_user.nonUserName,
+        employeeId=non_user.employeeId,
+        jobTitle=non_user.jobTitle,
         department=non_user.department,
-        email=non_user.nonUserEmail,
-        phone_num=non_user.nonUserPhoneNum
+        nonUserEmail=non_user.nonUserEmail,
+        nonUserPhoneNum=non_user.nonUserPhoneNum,
+        registered_union_id=union.id 
     )
 
     db.add(new_non_user)
     db.commit()
     db.refresh(new_non_user)
-    union = db.query(models.Union).filter(models.Union.unionName == union_name).first()
-    if not union:
-        raise HTTPException(status_code=404, detail="Union not found")
+
     union.signedCount += 1
     db.commit()
 
     return {"message": "Successfully signed", "unionName": union.unionName, "signedCount": union.signedCount}
 
-# # #check nonuser list if more than 10 show all info 
-# def check_profiles():
+
+#check nonuser list if more than 10 show all info 
+@router.get("/nonUserList/{union_name}")
+def check_profiles(union_name: str, db: Session = Depends(get_db)):
+
+    union = db.query(models.Union).filter(models.Union.unionName == union_name).first()
+
+    if not union:
+        raise HTTPException(status_code=404, detail="Union not found.")
+
+    # if union.signedCount < 10:
+    #     raise HTTPException(status_code=404, detail="Union signed count is less than 10.")
+
+    print(f"Union ID: {union.id}")
+
+    non_users = db.query(models.NonUser).filter(models.NonUser.registered_union_id == union.id).all()
     
-    
+    if not non_users:
+        print('-------------------------')
 
+    return non_users  
 
-
-
-
-
-
-
-
-# @router.get("/unions/{creator_id}", response_model=schemas.UnionByCreatorResponse)
-# def read_unions_by_creator_id(creator_id: int, db: Session = Depends(get_db)):
-    
-
-
-
-
-
-
-
-
-
-
+@router.post("/chatbot")
+def union_chatbot(request: schemas.ChatRequest):
+    try:
+        response = llm.generate_response(request.input)
+        return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
