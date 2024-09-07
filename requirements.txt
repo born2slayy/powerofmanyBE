@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+sqlalchemy
+asyncmy
+pydantic
+pymysql
+python-dotenv
+cryptography
+numpy
+pandas
+scikit-learn
+passlib
+pydantic[email]
+python-jose[cryptography] 
+passlib[bcrypt]
