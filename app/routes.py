@@ -59,16 +59,39 @@ def create_union(creator_id: int, union: schemas.UnionCreate, db: Session = Depe
 
     return union_data
 
+#show existing unions (unionName, qrcodelink, signCOunt, checkprofileTF)
+@router.get("/unions/read/{creator_id}", response_model=schemas.UnionByCreatorResponseList)
+def read_unions_by_creators(creator_id: int, db: Session = Depends(get_db)):
+    unions = db.query(models.Union).filter(models.Union.creator_id == creator_id).all()
 
-@router.get("/unions/create/{creator_id}", response_model=schemas.UnionResponse)
-def create_union(creator_id: int, union: schemas.UnionCreate, db: Session = Depends(get_db)):
-    union_data = models.Union(**union.dict(), creator_id=creator_id)
+    union_list = [
+        schemas.UnionByCreatorResponse(
+            unionName=union.unionName,
+            qrCodeLink=union.qrCodeLink,
+            signedCount=union.signedCount if union.signedCount is not None else 0,  
+            checkProfileTF=(union.signedCount is not None and union.signedCount >= 10)  
+        )
+        for union in unions
+            
+    ]
 
-    db.add(union_data)
-    db.commit()
-    db.refresh(union_data)
+    return schemas.UnionByCreatorResponseList(unions=union_list)
 
-    return union_data
+
+# #about unions
+# @router.get("unions/{unionName}", response_model=schemas.)
+# def read_unions_by_qr():
+    
+# #non user signing page (name, employeeId, jobtitle, department, email, phonenum) signcount +1
+# @router.post("sign/{union_name}")
+# def nonuser_signing():
+
+# #checkprofile if more than 10 show all info 
+# def check_profiles():
+    
+# #
+
+
 
 
 

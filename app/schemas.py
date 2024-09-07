@@ -53,7 +53,10 @@ class UnionByCreatorResponse(BaseModel):
     unionName: str
     qrCodeLink: str
     signedCount: int
-    checkProfilesTF: bool
+    checkProfilesTF: bool = False
+
+class UnionByCreatorResponseList(BaseModel):
+    unions : List[UnionByCreatorResponse]
 
 class UnionResponse(BaseModel):
     unionName: str
