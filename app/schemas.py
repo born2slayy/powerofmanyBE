@@ -27,6 +27,9 @@ class CreatorResponse(BaseModel):
     birthDate: date
     phoneNum: str
     userId: str
+class CreatorIdResponse(BaseModel):
+    creator_id: int
+    userId: str
     
 # Union 스키마
 class UnionBase(BaseModel):
@@ -70,7 +73,7 @@ class NonUserBase(BaseModel):
     jobTitle: str
     department: str
     nonUserEmail: EmailStr
-    nonUserphoneNum: str
+    nonUserPhoneNum: str
 
 class NonUserCreate(NonUserBase):
     registered_union_id: int  
@@ -80,3 +83,11 @@ class NonUser(NonUserBase):
 
     class Config:
         orm_mode = True
+        
+class NonUserResponse(BaseModel):
+    nonUserName: str
+    employeeId: str
+    jobTitle: str
+    department: str
+    nonUserEmail: EmailStr
+    nonUserPhoneNum: str

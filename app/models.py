@@ -37,5 +37,5 @@ class NonUser(Base):
     jobTitle = Column(String(255), nullable=False)
     department = Column(String(255), nullable=False)
     nonUserEmail = Column(String(255), nullable=False)
-    nonUserphoneNum = Column(String(255), nullable=False)
+    nonUserPhoneNum = Column(String(255), nullable=False)
     registered_union_id = Column(Integer, ForeignKey('unions.id'))

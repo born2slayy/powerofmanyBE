@@ -40,14 +40,14 @@ def create_creator(creator: schemas.CreatorCreate, db: Session = Depends(get_db)
     
     return creator_data
 
-@router.post("/creators/login", response_model=schemas.CreatorResponse)
+@router.post("/creators/login", response_model=schemas.CreatorIdResponse)
 def login_creator(userId: str, userPwd: str, db: Session = Depends(get_db)):
     creator = db.query(models.Creator).filter(models.Creator.userId == userId).first()
 
     if not creator or not pwd_context.verify(userPwd, creator.userPwd):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    return creator
+    return schemas.CreatorIdResponse(userId=creator.userId, creator_id=creator.id)
 
 @router.post("/unions/create/{creator_id}", response_model=schemas.UnionResponse)
 def create_union(creator_id: int, union: schemas.UnionCreate, db: Session = Depends(get_db)):
@@ -74,22 +74,53 @@ def read_unions_by_creators(creator_id: int, db: Session = Depends(get_db)):
         for union in unions
             
     ]
-
     return schemas.UnionByCreatorResponseList(unions=union_list)
 
 
-# #about unions
-# @router.get("unions/{unionName}", response_model=schemas.)
-# def read_unions_by_qr():
-    
-# #non user signing page (name, employeeId, jobtitle, department, email, phonenum) signcount +1
-# @router.post("sign/{union_name}")
-# def nonuser_signing():
+#about unions (qr)
+@router.get("/unions/{unionName}", response_model=List[schemas.UnionByCreatorResponse])
+def read_unions_by_qr(unionName: str, db: Session = Depends(get_db)):
 
-# #checkprofile if more than 10 show all info 
+    unions = db.query(models.Union).filter(models.Union.unionName == unionName).all()
+    
+    if not unions:
+        raise HTTPException(status_code=404, detail="No unions found with this name")
+
+    return [schemas.UnionByCreatorResponse(
+        unionName=union.unionName,
+        qrCodeLink=union.qrCodeLink,
+        signedCount=union.signedCount,
+        checkProfileTF=(union.signedCount >= 10)  
+    ) for union in unions]
+    
+#non user signing page (name, employeeId, jobtitle, department, email, phonenum) signcount +1
+@router.post("/sign/{union_name}")
+def nonuser_signing(union_name: str, non_user: schemas.NonUserBase, db: Session = Depends(get_db)):
+    new_non_user = models.NonUser(  
+        name=non_user.nonUserName,
+        employee_id=non_user.employeeId,
+        job_title=non_user.jobTitle,
+        department=non_user.department,
+        email=non_user.nonUserEmail,
+        phone_num=non_user.nonUserPhoneNum
+    )
+
+    db.add(new_non_user)
+    db.commit()
+    db.refresh(new_non_user)
+    union = db.query(models.Union).filter(models.Union.unionName == union_name).first()
+    if not union:
+        raise HTTPException(status_code=404, detail="Union not found")
+    union.signedCount += 1
+    db.commit()
+
+    return {"message": "Successfully signed", "unionName": union.unionName, "signedCount": union.signedCount}
+
+# # #check nonuser list if more than 10 show all info 
 # def check_profiles():
     
-# #
+    
+
 
 
 
